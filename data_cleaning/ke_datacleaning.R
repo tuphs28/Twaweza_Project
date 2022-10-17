@@ -2,7 +2,7 @@ library(tidyverse)
 library(dplyr)
 library(haven)
 
-raw_data_labelled <- read_dta("IpsosKe_Taxation_data_Round5.dta")
+raw_data_labelled <- read_dta("../data/IpsosKe_Taxation_data_Round5.dta")
 raw_data <- zap_labels(raw_data_labelled)
 
 convert_yes_no <- function(item, labs = c(2, 1)) {
