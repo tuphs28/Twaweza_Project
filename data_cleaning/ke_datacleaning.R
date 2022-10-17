@@ -130,6 +130,30 @@ convert_yes_no_many_cols <- function(df, cols_to_conv, new_col_names=c(NA)) {
   return(df)
 }
 
+new_col_from_many <- function(df, cols_to_conv, val_to_use, new_col_name) {
+  
+  for (i in 1:nrow(df)) {
+    
+    for (col in cols_to_conv) {
+      
+      if (!is.na(df[n, col])) {
+        
+        if (df[n, col] == val_to_use) {
+          
+          df[n, new_col_name] <- 1
+        }
+      }
+    }
+    
+    if (!is.na(df[n,cols_to_conv[1]]) & is.na(df[n, new_col_name])){
+      
+      df[n, new_col_name] <- 0
+    }
+  }
+  
+  return(df)
+}
+
 
 # Standardize and rename yes-no variables
 # EMP - dummy for employment
