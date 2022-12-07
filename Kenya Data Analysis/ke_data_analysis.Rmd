@@ -1,0 +1,198 @@
+```{r}
+library(tidyverse)
+library(dplyr)
+library(haven)
+library(MatchIt)
+library(ggplot2)
+library(lmtest)
+library(sandwich)
+library(boot)
+```
+
+```{r}
+ke_data <- read_dta("./IpsosKe_Taxation_data_Round5.dta")
+```
+
+### clean and generate matching variables
+```{r}
+ke_data <- ke_data %>%
+  filter(!is.na(ke_data$d5_1)) %>%
+  filter(!is.na(ke_data$d5_4)) %>%
+  filter(!is.na(ke_data$d5_7)) %>%
+  filter(!is.na(ke_data$d15_1)) %>%
+  filter(!is.na(ke_data$d15_2)) %>%
+  filter(!is.na(ke_data$d15_6)) %>%
+  filter(!is.na(ke_data$d15_7)) %>%
+  filter(!is.na(ke_data$d15_8)) %>%
+  filter(!is.na(ke_data$d22a)) %>%
+  filter(!is.na(ke_data$e24_3)) %>%
+  filter(!is.na(ke_data$respondent_gender)) %>%
+  filter(!is.na(ke_data$respondet_age)) %>%
+  filter(!is.na(ke_data$setting)) %>%
+  filter(!is.na(ke_data$d19)) %>%
+  filter(!is.na(ke_data$a1ci)) %>%
+  filter(!is.na(ke_data$a1a))
+
+ke_data$tax_enforce <-ifelse(ke_data$d5_4==1,1,0)
+ke_data$tax_important <- ifelse(ke_data$d5_1==1,1,0)
+ke_data$tax_spent_well <-ifelse(ke_data$d15_1==1,1,0)
+ke_data$happy_with_services <- ifelse(ke_data$e24_3==1|ke_data$e24_3==2, 1, 0)
+ke_data$tax_spent_well <-ifelse(ke_data$d15_1==1,1,0)
+ke_data$tax_voice_matter <-ifelse(ke_data$d15_8==1,1,0)
+ke_data$tax_rev_understand <-ifelse(ke_data$d15_6==1,1,0)
+ke_data$tax_harm_fair <-ifelse(ke_data$d15_7==1,1,0)
+ke_data$tax_rates_fair <-ifelse(ke_data$d15_2==1,1,0)
+ke_data$tax_duty <-ifelse(ke_data$d5_7==1,1,0)
+ke_data$tax_ev_high <- ifelse(ke_data$d22a==1, 1, 0)
+ke_data$female <- ifelse(ke_data$respondent_gender==1,1,0)
+ke_data$age <- ke_data$respondet_age
+ke_data$urban <- ifelse(ke_data$setting ==1,1,0)
+ke_data$tax_exemps_aware <- ifelse(ke_data$d19 ==1,1,0)
+ke_data$business_owner <- ifelse(ke_data$a1ci == 1, 1, 0)
+ke_data$emp <- ifelse(ke_data$a1a == 1, 1, 0)
+ke_data$know_wealthy_one_excuco <- ifelse(((ke_data$d1_6== 1 & !is.na(ke_data$d1_6)) | (ke_data$d2_6== 1 &!is.na(ke_data$d2_6))) | ((ke_data$d1_7== 1 & !is.na(ke_data$d1_7)) | (ke_data$d2_7== 1 & !is.na(ke_data$d2_7))) |((ke_data$d1_11== 1 & !is.na(ke_data$d1_11)) | (ke_data$d2_11== 1 & !is.na(ke_data$d2_11))), 1, 0)
+ke_data$know_property <- ifelse((ke_data$d1_2== 1 & !is.na(ke_data$d1_2)) | (ke_data$d2_2== 1 & !is.na(ke_data$d2_2)), 1, 0)
+ke_data$num_tax_known <-ke_data$d1_1 + ke_data$d1_2 + ke_data$d1_3 + ke_data$d1_4 + ke_data$d1_5 + ke_data$d1_6 + ke_data$d1_7 + ke_data$d1_8 + ke_data$d1_9 + ke_data$d1_10 + ke_data$d1_11 + ke_data$d1_12 + ke_data$d1_13 + ke_data$d2_1 + ke_data$d2_2 + ke_data$d2_3 + ke_data$d2_4 + ke_data$d2_5 + ke_data$d2_6 + ke_data$d2_7 + ke_data$d2_8 + ke_data$d2_9 + ke_data$d2_10 + ke_data$d2_11 + ke_data$d2_12 + ke_data$d2_13
+
+data_clean <- ke_data
+```
+
+
+### Set CEM Parameters
+```{r}
+cutpoints <- list(age=c(15,20,25,35,45,55,65), num_tax_known=c(2,4,6,8,10,12))
+```
+
+### Fiscal Exchange
+
+```{r}
+m.out1 <- matchit(tax_important ~ age + urban + female + tax_exemps_aware + know_wealthy_one_excuco + know_property + num_tax_known + emp + business_owner, data=data_clean, method = "cem", cutpoints=cutpoints)
+
+summary(m.out1)
+
+md <- match.data(m.out1)
+
+fit1 <- lm(tax_enforce ~ tax_important, data = md, weights = weights)
+coeftest(fit1, vcov. = vcovHC)
+
+summary(lm(data=data_clean, formula=tax_enforce~tax_important))
+```
+```{r}
+m.out1 <- matchit(tax_spent_well ~ age + urban + female + tax_exemps_aware + know_wealthy_one_excuco + know_property + num_tax_known + emp + business_owner, data=data_clean, method = "cem", cutpoints=cutpoints)
+
+summary(m.out1)
+
+md <- match.data(m.out1)
+
+fit1 <- lm(tax_enforce ~ tax_spent_well, data = md, weights = weights)
+coeftest(fit1, vcov. = vcovHC)
+
+summary(lm(data=data_clean, formula=tax_enforce~tax_spent_well))
+```
+```{r}
+m.out1 <- matchit(happy_with_services ~ age + urban + female + tax_exemps_aware + know_wealthy_one_excuco + know_property + num_tax_known + emp + business_owner, data=data_clean, method = "cem", cutpoints=cutpoints)
+
+summary(m.out1)
+
+md <- match.data(m.out1)
+
+fit1 <- lm(tax_enforce ~ happy_with_services, data = md, weights = weights)
+coeftest(fit1, vcov. = vcovHC)
+
+summary(lm(data=data_clean, formula=tax_enforce~happy_with_services))
+```
+### Political Legitimacy
+
+```{r}
+m.out1 <- matchit(tax_voice_matter ~ age + urban + female + tax_exemps_aware + know_wealthy_one_excuco + know_property + num_tax_known + emp + business_owner, data=data_clean, method = "cem", cutpoints=cutpoints)
+
+summary(m.out1)
+
+md <- match.data(m.out1)
+
+fit1 <- lm(tax_enforce ~ tax_voice_matter, data = md, weights = weights)
+coeftest(fit1, vcov. = vcovHC)
+
+summary(lm(data=data_clean, formula=tax_enforce~tax_voice_matter))
+```
+
+
+```{r}
+m.out1 <- matchit(tax_rev_understand ~ age + urban + female + tax_exemps_aware + know_wealthy_one_excuco + know_property + num_tax_known + emp + business_owner, data=data_clean, method = "cem", cutpoints=cutpoints)
+
+summary(m.out1)
+
+md <- match.data(m.out1)
+
+fit1 <- lm(tax_enforce ~ tax_rev_understand, data = md, weights = weights)
+coeftest(fit1, vcov. = vcovHC)
+
+summary(lm(data=data_clean, formula=tax_enforce~tax_rev_understand))
+```
+
+
+```{r}
+m.out1 <- matchit(tax_harm_fair ~ age + urban + female + tax_exemps_aware + know_wealthy_one_excuco + know_property + num_tax_known + emp + business_owner, data=data_clean, method = "cem", cutpoints=cutpoints)
+
+summary(m.out1)
+
+md <- match.data(m.out1)
+
+fit1 <- lm(tax_enforce ~ tax_harm_fair, data = md, weights = weights)
+coeftest(fit1, vcov. = vcovHC)
+
+summary(lm(data=data_clean, formula=tax_enforce~tax_harm_fair))
+```
+
+```{r}
+m.out1 <- matchit(tax_rates_fair ~ age + urban + female + tax_exemps_aware + know_wealthy_one_excuco + know_property + num_tax_known + emp + business_owner, data=data_clean, method = "cem", cutpoints=cutpoints)
+
+summary(m.out1)
+
+md <- match.data(m.out1)
+
+fit1 <- lm(tax_enforce ~ tax_rates_fair, data = md, weights = weights)
+coeftest(fit1, vcov. = vcovHC)
+
+summary(lm(data=data_clean, formula=tax_enforce~tax_rates_fair))
+```
+### Social Norms
+```{r}
+m.out1 <- matchit(tax_ev_high ~ age + urban + female + tax_exemps_aware + know_wealthy_one_excuco + know_property + num_tax_known + emp + business_owner, data=data_clean, method = "cem", cutpoints=cutpoints)
+
+summary(m.out1)
+
+md <- match.data(m.out1)
+
+fit1 <- lm(tax_enforce ~ tax_ev_high, data = md, weights = weights)
+coeftest(fit1,  vcov. = vcovHC)
+
+summary(lm(data=data_clean, formula=tax_enforce~tax_ev_high))
+```
+
+```{r}
+m.out1 <- matchit(tax_duty ~ age + urban + female + tax_exemps_aware + know_wealthy_one_excuco + know_property + num_tax_known + emp + business_owner, data=data_clean, method = "cem", cutpoints=cutpoints)
+
+summary(m.out1)
+
+md <- match.data(m.out1)
+
+fit1 <- lm(tax_enforce ~ tax_duty, data = md, weights = weights)
+coeftest(fit1, vcov. = vcovHC)
+
+summary(lm(data=data_clean, formula=tax_enforce~tax_duty))
+```
+
+
+```{r}
+m.out1 <- matchit(tax_duty ~ age + urban + female + tax_exemps_aware + know_wealthy_one_excuco + know_property + num_tax_known + emp + business_owner, data=data_clean, method = "cem", cutpoints=cutpoints)
+
+summary(m.out1)
+
+md <- match.data(m.out1)
+
+fit1 <- lm(tax_enforce ~ tax_duty, data = md, weights = weights)
+coeftest(fit1, vcov. = vcovHC)
+
+summary(lm(data=data_clean, formula=tax_enforce~tax_duty))
+```
